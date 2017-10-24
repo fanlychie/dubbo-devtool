@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
@@ -23,38 +24,40 @@ import java.util.Map;
  */
 public final class FileHandlerHelper {
 
-    // 分隔符
-    private static final String SEPARATOR = "@";
+    // 存储目录
+    private static final File DUBBO_DIR = new File(System.getProperty("user.home") + "/.dubbo-dev-cache");
 
-    // 缓存目录
-    private static final File USER_HOME_DUBBO_DIR = new File(
-            System.getProperty("user.home") + "/.dubbo-dev-cache");
+    // 缓存文件
+    private static final File CACHE_FILE = new File(DUBBO_DIR, "dubbo-provider.cache");
 
     static {
-        // 缓存目录
-        if (!USER_HOME_DUBBO_DIR.exists()) {
-            USER_HOME_DUBBO_DIR.mkdir();
+        // 存储目录
+        if (!DUBBO_DIR.exists()) {
+            DUBBO_DIR.mkdir();
         }
-    }
-
-    public static void main(String[] args) {
-        String key = "com.gw.facade.user.service";
-        String value = "com.gw.facade.user.service.UserCacheFacade";
-        System.out.println(value.substring(key.length() + 1));
+        // 缓存文件
+        if (!CACHE_FILE.exists()) {
+            try {
+                CACHE_FILE.createNewFile();
+            } catch (IOException e) {}
+        }
     }
 
     public static void recreateDubboProviderCachedInfo() throws Exception {
         // 提供者定义的端口
         String port = findXmlAttributeValueByClasspath("dubbo:protocol", "port");
-        // 提供者定义的服务全路径
+        // 提供者定义的服务
         List<String> services = findXmlAttributeValuesByClasspath("dubbo:service", "interface");
-        // 转换包路径和服务的映射
+        // 清空, 重置
+        clearFile(CACHE_FILE);
+
+        /*// 转换包路径和服务的映射
         Map<String, String> packageMapping = new HashMap<>();
         for (String service : services) {
             packageMapping.put(service.substring(0, service.lastIndexOf(".")), service);
         }
         // 缓存文件
-        File cacheFile = new File(USER_HOME_DUBBO_DIR, getProjectName() + ".cache");
+        File cacheFile = new File(DUBBO_DIR, getProjectName() + ".cache");
         // 创建文件
         if (!cacheFile.exists()) {
             cacheFile.createNewFile();
@@ -66,14 +69,14 @@ public final class FileHandlerHelper {
             String service = packageMapping.get(pack);
             String serviceName = service.substring(pack.length() + 1);
             appendFile(cacheFile, pack + SEPARATOR + serviceName + SEPARATOR + port);
-        }
+        }*/
     }
 
     public static void generateDirectConnectProviderInfo(String springContext) throws  Exception {
         Map<String, String> serviceMapping = getActiveProviders(springContext);
         List<String> interfaces = findXmlAttributeValuesByClasspath("dubbo:reference", "interface");
         // 项目配置文件
-        File configFile = new File(USER_HOME_DUBBO_DIR, getProjectName() + ".properties");
+        File configFile = new File(DUBBO_DIR, getProjectName() + ".properties");
         // 重置, 清空
         writeFile(configFile, "");
         for (String serviceInterface : interfaces) {
@@ -87,7 +90,7 @@ public final class FileHandlerHelper {
 
     private static Map<String, String> getActiveProviders(String springContext) throws Exception {
         // 所有提供者的缓存文件
-        List<File> providerCacheFiles = findCacheFiles(USER_HOME_DUBBO_DIR);
+        List<File> providerCacheFiles = findCacheFiles(DUBBO_DIR);
         if (providerCacheFiles.size() == 0) {
             throw new RuntimeException("未发现本地提供者服务！");
         }
@@ -97,7 +100,7 @@ public final class FileHandlerHelper {
         for (File providerCacheFile : providerCacheFiles) {
             List<String> lines = readFileLineByLine(providerCacheFile);
             for (String line : lines) {
-                String[] parts = line.split(SEPARATOR);
+                String[] parts = line.split("@");
                 String packageName = parts[0];
                 String serviceName = parts[1];
                 String port = parts[2];
@@ -210,6 +213,10 @@ public final class FileHandlerHelper {
             }
         }
         return lines;
+    }
+
+    private static void clearFile(File file) throws Exception {
+        writeFile(file, "");
     }
 
     private static void writeFile(File file, String text) throws Exception {
