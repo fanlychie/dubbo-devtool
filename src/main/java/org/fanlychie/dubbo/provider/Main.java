@@ -9,7 +9,7 @@ import org.fanlychie.dubbo.DubboConfigHandler;
 public class Main {
 
     public static void main(String[] args) throws Exception {
-        // 预处理DUBBO提供者服务
+        // DUBBO提供者服务启动前的预处理工作
         DubboConfigHandler.preHandleProvider();
         // 调DUBBO的Main启动服务
         com.alibaba.dubbo.container.Main.main(args);
