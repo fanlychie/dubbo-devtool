@@ -198,10 +198,6 @@ public final class DubboConfigHandler {
      * @throws Exception
      */
     private static List<File> getClasspathMatchFiles(String filename) throws Exception {
-        // 去掉以"classpath:"和"classpath*:"开头的字符
-        if (filename.matches("classpath[*]?:\\S+")) {
-            filename = filename.substring(filename.indexOf(":") + 1);
-        }
         // 去类路径下查找
         List<File> configFiles = matchFiles(getClassPath(), filename);
         // 文件引用的其它文件
@@ -223,6 +219,10 @@ public final class DubboConfigHandler {
         String pathname;
         String filename;
         String separator;
+        // 去掉以"classpath:"和"classpath*:"开头的字符
+        if (filePattern.matches("classpath[*]?:\\S+")) {
+            filePattern = filePattern.substring(filePattern.indexOf(":") + 1);
+        }
         // 解析出路径和文件名
         if (filePattern.contains("/") || filePattern.contains("\\")) {
             if (filePattern.contains("/")) {
