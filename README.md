@@ -33,3 +33,22 @@ public static void main(String[] args) {
 启动WEB项目时，添加启动参数：`-Ddubbo.local.debug`或`-Ddebugg`。IntelliJ IDEA 启动的配置示例：
 
 ![](https://raw.githubusercontent.com/fanlychie/mdimg/master/dubbo-consumer.png)
+
+# 获取依赖
+
+```xml
+<repositories>
+    <repository>
+        <id>github-maven-repo</id>
+        <url>https://raw.github.com/fanlychie/maven-repo/releases</url>
+    </repository>
+</repositories>
+
+<dependencies>
+    <dependency>
+        <groupId>org.fanlychie</groupId>
+        <artifactId>dubbo-devtool</artifactId>
+        <version>1.0.0</version>
+    </dependency>
+</dependencies>
+```
