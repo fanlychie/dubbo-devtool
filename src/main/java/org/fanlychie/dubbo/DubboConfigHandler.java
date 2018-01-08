@@ -36,6 +36,9 @@ public final class DubboConfigHandler {
     // 提供者文件后缀名称
     private static final String PROVIDER_FILE_SUFFIX_NAME = ".provider";
 
+    // 本地主机
+    private static final String HOST = "127.0.0.1";
+
     static {
         // 首次创建存储目录
         if (!DUBBO_USER_HOME_PATHNAME.exists()) { DUBBO_USER_HOME_PATHNAME.mkdir(); }
@@ -61,15 +64,9 @@ public final class DubboConfigHandler {
             List<String> configServices = findAttributeValuesByXmlFile(configFile,"dubbo:service", "interface", "group");
             if (!CollectionUtils.isEmpty(configServices)) {
                 for (int i = 1; i < configServices.size(); i += 2) {
+                    String configGroup = configServices.get(i);
                     String configService = configServices.get(i - 1);
-                    if (!services.contains(configService)) {
-                        services.add(configService);
-                    } else {
-                        // 配置文件中声明的服务出现重复, 说明使用了分组
-                        String group = configServices.get(i);
-                        // 分组的直连需要在服务接口的后面标记计数的字符
-                        services.add(group + "/" + configService + (getCount(services, configService) + 1));
-                    }
+                    services.add(getServiceInterface(services, configGroup, configService));
                 }
             }
         }
@@ -89,7 +86,7 @@ public final class DubboConfigHandler {
         // 直连本地其它提供者服务「如果有」
         directConnectProviderConfigFile(configFiles);
         // 启动日志
-        ConsoleLogger.logStartupProvider();
+        ConsoleLogger.log("「正在启动本地提供者服务」", String.format("dubbo://%s:%s", HOST, port));
     }
 
     /**
@@ -114,7 +111,7 @@ public final class DubboConfigHandler {
     /**
      * 直连
      *
-     * @param configFiles 配置文件
+     * @param configFiles   配置文件
      * @throws Exception
      */
     private static void directConnectProviderConfigFile(List<File> configFiles) throws Exception {
@@ -122,7 +119,6 @@ public final class DubboConfigHandler {
         List<ProviderConfig> providerConfigs = getLocalProviderConfig();
         // 本地没有提供者
         if (providerConfigs == null) {
-            ConsoleLogger.logNoProvider();
             return;
         }
         // 消费者直连的配置文件
@@ -134,6 +130,9 @@ public final class DubboConfigHandler {
         }
         // 行内容
         String line = null;
+        // 消息内容
+        List<String> messages = new LinkedList<>();
+        messages.add("「直连本地提供者服务信息」");
         for (File config : configFiles) {
             // 查找 <dubbo:reference>
             List<String> references = findAttributeValuesByXmlFile(config, "dubbo:reference", "interface", "group");
@@ -145,24 +144,26 @@ public final class DubboConfigHandler {
                         ServiceConfig serviceConfig = providerConfig.getServiceConfig(group, interfaceName);
                         // 有分组
                         if (serviceConfig.getGroup() != null) {
-                            line = String.format("%s=dubbo://127.0.0.1:%s/%s", interfaceName, providerConfig.getPort(),
+                            line = String.format("%s=dubbo://%s:%s/%s", interfaceName, HOST, providerConfig.getPort(),
                                     serviceConfig.getInterfaceName());
+                            messages.add(String.format("%s=dubbo://%s:%s/%s/%s", interfaceName, HOST, providerConfig.getPort(),
+                                    group, interfaceName));
                         } else {
-                            line = String.format("%s=dubbo://127.0.0.1:%s", interfaceName, providerConfig.getPort());
+                            line = String.format("%s=dubbo://%s:%s", interfaceName, HOST, providerConfig.getPort());
+                            messages.add(line);
                         }
                         appendFile(configFile, line);
                     }
                 }
             }
         }
-        if (line == null) {
-            ConsoleLogger.logNoLocalConsume();
-            return;
-        } else {
+        if (line != null) {
             // 启动本地提供者直连其它提供者
             RuntimeArgument.set("dubbo.resolve.file", configFile.getAbsolutePath());
             // 本地直连调用超时时间设为一天, 项目中配置的超时时间将被此覆盖
             RuntimeArgument.set("dubbo.consumer.timeout", "86400000");
+            // 控制台启动日志
+            ConsoleLogger.log(messages.toArray());
         }
     }
 
@@ -260,20 +261,30 @@ public final class DubboConfigHandler {
     }
 
     /**
-     * 获取集合中包含的键的计数
+     * 获取服务接口
      *
-     * @param list 记录
-     * @param key  键值
+     * @param services      服务列表
+     * @param group         分组名称
+     * @param interfaceName 接口名称
      * @return
      */
-    private static int getCount(List<String> list, String key) {
-        int count = 0;
-        for (String item : list) {
-            if (item.contains(key)) {
-                count++;
+    private static String getServiceInterface(List<String> services, String group, String interfaceName) {
+        if (group == null) {
+            return interfaceName;
+        } else {
+            int count = 0;
+            String regex = String.format("\\w+/%s\\d*", interfaceName.replaceAll("\\.", "\\\\."));
+            for (String service : services) {
+                if (service.matches(regex)) {
+                    count++;
+                }
+            }
+            if (count == 0) {
+                return String.format("%s/%s", group, interfaceName);
+            } else {
+                return String.format("%s/%s%d", group, interfaceName, count + 1);
             }
         }
-        return count;
     }
 
     /**
@@ -293,7 +304,7 @@ public final class DubboConfigHandler {
                 String name = providerFile.getName();
                 String port = name.substring(name.indexOf("@") + 1, name.lastIndexOf("."));
                 // telnet 127.0.0.1 port
-                if (telnet("127.0.0.1", Integer.parseInt(port))) {
+                if (telnet(HOST, Integer.parseInt(port))) {
                     List<String> lines = readFileLineByLine(providerFile);
                     List<ServiceConfig> serviceConfigs = new ArrayList<>();
                     for (String line : lines) {
