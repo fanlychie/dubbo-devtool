@@ -199,7 +199,7 @@ public final class DubboConfigHandler {
      */
     private static List<File> getClasspathMatchFiles(String filename) throws Exception {
         // 去类路径下查找
-        List<File> configFiles = matchFiles(getClassPath(), filename);
+        List<File> configFiles = matchClasspathFiles(filename);
         // 文件引用的其它文件
         List<File> importFiles = getXmlFileImportFiles(configFiles);
         // 追加到
@@ -208,17 +208,17 @@ public final class DubboConfigHandler {
     }
 
     /**
-     * 匹配目录下的文件
+     * 匹配类路径下的文件
      *
-     * @param parentFile  文件所在的目录
      * @param filePattern 文件名称, 文件模式
      * @return
      * @throws Exception
      */
-    private static List<File> matchFiles(File parentFile, String filePattern) throws Exception {
+    private static List<File> matchClasspathFiles(String filePattern) throws Exception {
         String pathname;
         String filename;
         String separator;
+        File parentFile = getClassPath();
         // 去掉以"classpath:"和"classpath*:"开头的字符
         if (filePattern.matches("classpath[*]?:\\S+")) {
             filePattern = filePattern.substring(filePattern.indexOf(":") + 1);
@@ -254,7 +254,7 @@ public final class DubboConfigHandler {
         for (File configFile : configFiles) {
             List<String> resourceFilePaths = findAttributeValuesByXmlFile(configFile, "import", "resource");
             for (String resourceFilePath : resourceFilePaths) {
-                resourceFiles.addAll(matchFiles(configFile.getParentFile(), resourceFilePath));
+                resourceFiles.addAll(matchClasspathFiles(resourceFilePath));
             }
         }
         return resourceFiles;
