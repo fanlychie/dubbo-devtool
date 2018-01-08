@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.fanlychie</groupId>
     <artifactId>dubbo-devtool</artifactId>
-    <version>1.0.0.0</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
     <name>dubbo-devtool</name>
     <url>http://maven.apache.org</url>
@@ -18,9 +18,10 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>commons-net</groupId>
-            <artifactId>commons-net</artifactId>
-            <version>3.6</version>
+            <groupId>org.apache.tomcat</groupId>
+            <artifactId>servlet-api</artifactId>
+            <version>6.0.37</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
     <build>
@@ -52,7 +53,7 @@
                         <configuration>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>org.fanlychie.dubbo.provider.Debug</mainClass>
+                                    <mainClass>org.fanlychie.dubbo.provider.Main</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>
