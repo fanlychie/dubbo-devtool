@@ -58,7 +58,10 @@ public final class DubboConfigHandler {
         List<File> configFiles = getDubboSpringConfig();
         for (File configFile : configFiles) {
             if (port == null) {
-                port = findAttributeValueByXmlFile(configFile,"dubbo:protocol", "port");
+                List<String> ports = findAttributeValuesByXmlFile(configFile, "dubbo:protocol", "port");
+                if (!CollectionUtils.isEmpty(ports)) {
+                    port = ports.get(0);
+                }
             }
             // 配置文件声明的服务
             List<String> configServices = findAttributeValuesByXmlFile(configFile,"dubbo:service", "interface", "group");
@@ -345,19 +348,6 @@ public final class DubboConfigHandler {
             }
         }
         return true;
-    }
-
-    /**
-     * 查找XML文件下给定的标签的属性的值
-     *
-     * @param file           XML文件
-     * @param tag            标签
-     * @param attributeNames 属性名
-     * @return
-     * @throws Exception
-     */
-    private static String findAttributeValueByXmlFile(File file, String tag, String... attributeNames) throws Exception {
-        return findAttributeValuesByXmlFile(file, tag, attributeNames).get(0);
     }
 
     /**
