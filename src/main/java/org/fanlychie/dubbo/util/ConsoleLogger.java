@@ -7,7 +7,7 @@ package org.fanlychie.dubbo.util;
 public final class ConsoleLogger {
 
     public static void log(Object... messages) {
-        System.err.println("\n[INFO] <=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=>");
+        System.err.println("[INFO] <=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=>");
         for (Object message : messages) {
             System.err.println(String.format("[INFO] %s", message));
         }
