@@ -39,6 +39,9 @@ public final class DubboConfigHandler {
     // 本地主机
     private static final String HOST = "127.0.0.1";
 
+    // WEB应用配置文件
+    private static final String WEB_APPLICATION_CONFIG_PATH = "src/main/webapp/WEB-INF/web.xml";
+
     static {
         // 首次创建存储目录
         if (!DUBBO_USER_HOME_PATHNAME.exists()) { DUBBO_USER_HOME_PATHNAME.mkdir(); }
@@ -109,6 +112,35 @@ public final class DubboConfigHandler {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * 获取web.xml中配置的contextConfigLocation参数的值
+     *
+     * @return
+     * @throws Exception
+     */
+    public static String getWebApplicationContextConfigLocation() throws Exception {
+        String contextConfigLocation = null;
+        // 按行读取的文件内容
+        List<String> lines = readFileLineByLine(new File(WEB_APPLICATION_CONFIG_PATH));
+        boolean hit = false;
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
+            if (line.contains("<context-param>")) {
+                hit = true;
+            } else if (line.contains("</context-param>")) {
+                hit = false;
+            } else if (hit) {
+                if (line.contains("<param-name>contextConfigLocation</param-name>")) {
+                    contextConfigLocation = lines.get(i + 1);
+                    contextConfigLocation = contextConfigLocation.substring(contextConfigLocation.indexOf(">") + 1,
+                            contextConfigLocation.lastIndexOf("<"));
+
+                }
+            }
+        }
+        return contextConfigLocation;
     }
 
     /**
@@ -202,28 +234,33 @@ public final class DubboConfigHandler {
      */
     private static List<File> getClasspathMatchFiles(String filename) throws Exception {
         // 去类路径下查找
-        List<File> configFiles = matchClasspathFiles(filename);
+        List<File> configFiles = matchClasspathFiles(getClassPath(), filename);
         // 文件引用的其它文件
         List<File> importFiles = getXmlFileImportFiles(configFiles);
-        // 追加到
-        configFiles.addAll(importFiles);
+        while (!CollectionUtils.isEmpty(importFiles)) {
+            // 追加到
+            configFiles.addAll(importFiles);
+            // 继续查找
+            importFiles = getXmlFileImportFiles(importFiles);
+        }
         return configFiles;
     }
 
     /**
      * 匹配类路径下的文件
      *
+     * @param parentFile  父目录
      * @param filePattern 文件名称, 文件模式
      * @return
      * @throws Exception
      */
-    private static List<File> matchClasspathFiles(String filePattern) throws Exception {
+    private static List<File> matchClasspathFiles(File parentFile, String filePattern) throws Exception {
         String pathname;
         String filename;
         String separator;
-        File parentFile = getClassPath();
         // 去掉以"classpath:"和"classpath*:"开头的字符
         if (filePattern.matches("classpath[*]?:\\S+")) {
+            parentFile = getClassPath();
             filePattern = filePattern.substring(filePattern.indexOf(":") + 1);
         }
         // 解析出路径和文件名
@@ -257,7 +294,7 @@ public final class DubboConfigHandler {
         for (File configFile : configFiles) {
             List<String> resourceFilePaths = findAttributeValuesByXmlFile(configFile, "import", "resource");
             for (String resourceFilePath : resourceFilePaths) {
-                resourceFiles.addAll(matchClasspathFiles(resourceFilePath));
+                resourceFiles.addAll(matchClasspathFiles(configFile.getParentFile(), resourceFilePath));
             }
         }
         return resourceFiles;
