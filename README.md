@@ -20,6 +20,8 @@ public static void main(String[] args) {
 
 # 本地启动消费者服务(面向WEB服务)
 
+## 方式1
+
 在`web.xml`配置文件中添加如下配置：
 
 ```xml
@@ -33,6 +35,14 @@ public static void main(String[] args) {
 启动WEB项目时，添加启动参数：`-Ddubbo.local.debug`或`-Ddebugg`。IntelliJ IDEA 启动的配置示例：
 
 ![](https://raw.githubusercontent.com/fanlychie/mdimg/master/dubbo-consumer.png)
+
+## 方式二
+
+在SPRING配置文件中加入如下配置信息：
+
+```xml
+<bean class="org.fanlychie.dubbo.consumer.ConsumerPostProcessor"/>
+```
 
 # 获取依赖
 
